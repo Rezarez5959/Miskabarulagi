@@ -22,7 +22,7 @@ const PROTECTED = [
   "/riwayat",
 ];
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const perluLogin = PROTECTED.some((p) => path === p || path.startsWith(p + "/"));
   if (!perluLogin) return NextResponse.next();

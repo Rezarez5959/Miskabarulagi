@@ -1,4 +1,4 @@
-import pool, { ok, fail, periodeTertutup } from "@/lib/db";
+import pool, { tangkap, ok, fail, periodeTertutup } from "@/lib/db";
 import { requireRole, saldoAkhir, normalisasiUid, tanggalHariIni } from "@/lib/auth";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
@@ -92,11 +92,12 @@ export async function POST(req: Request) {
       } catch {
         /* abaikan */
       }
-      return fail((e as Error).message, 500);
+      return tangkap("Gagal bayar", e);
     }
   } catch (e) {
-    return fail((e as Error).message, 500);
+    return tangkap("Gagal bayar", e);
   } finally {
     conn.release();
   }
 }
+

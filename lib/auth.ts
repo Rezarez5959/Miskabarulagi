@@ -87,7 +87,19 @@ export async function createSession(idUser: number): Promise<{ token: string; be
 }
 
 export function sessionCookieHeader(token: string): string {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 24 * 3600}`;
+  // Flag Secure hanya saat production/https — di localhost http cookie tanpa
+  // Secure tetap terkirim; di production wajib agar tak bocor via http.
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax${secure}; Max-Age=${SESSION_DAYS * 24 * 3600}`;
+}
+
+/** Hapus sesi kedaluwarsa milik satu user (dipanggil tiap login sukses). */
+export async function bersihkanSesiKedaluarsa(idUser: number): Promise<void> {
+  try {
+    await pool.execute("DELETE FROM tb_session WHERE id_user = ? AND berakhir < NOW()", [idUser]);
+  } catch {
+    /* abaikan — pembersihan oportunistik, bukan bagian transaksi login */
+  }
 }
 
 export function clearSessionCookieHeader(): string {

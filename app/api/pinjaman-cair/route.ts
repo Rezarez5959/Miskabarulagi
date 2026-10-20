@@ -1,4 +1,4 @@
-import pool, { ok, fail, periodeTertutup } from "@/lib/db";
+import pool, { tangkap, ok, fail, periodeTertutup } from "@/lib/db";
 import { batas, batasNominal, requireRole } from "@/lib/auth";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
@@ -96,8 +96,9 @@ export async function POST(req: Request) {
     return ok({ id_piutang: idPiutang, id_jurnal: idJurnal, total });
   } catch (e) {
     await conn.rollback();
-    return fail((e as Error).message, 500);
+    return tangkap("Gagal cairkan pinjaman", e);
   } finally {
     conn.release();
   }
 }
+

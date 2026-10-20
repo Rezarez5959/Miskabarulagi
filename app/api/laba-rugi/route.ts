@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import pool, { ok, fail } from "@/lib/db";
+import pool, { gagal, ok, fail } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import type { RowDataPacket } from "mysql2/promise";
 
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     biaya = Math.round(biaya * 100) / 100;
     return ok({ bulan, pendapatan, biaya, laba: Math.round((pendapatan - biaya) * 100) / 100, rows: out });
   } catch (e) {
-    return fail("Gagal baca laba rugi: " + (e as Error).message, 500);
+    return gagal("Gagal baca laba rugi: ", e);
   }
 }
+

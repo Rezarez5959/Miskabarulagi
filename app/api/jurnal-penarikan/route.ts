@@ -1,4 +1,4 @@
-import pool, { ok, fail, periodeTertutup } from "@/lib/db";
+import pool, { tangkap, ok, fail, periodeTertutup } from "@/lib/db";
 import { batas, batasNominal, requireRole, saldoAkhir } from "@/lib/auth";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
@@ -64,11 +64,28 @@ export async function POST(req: Request) {
     );
 
     await conn.commit();
-    return ok({ id_jurnal: idJurnal });
+    // Data nota: nama + sisa saldo setelah tarik + jam transaksi.
+    const akhir = await saldoAkhir(conn, kode);
+    const [jrows] = await conn.execute<RowDataPacket[]>(
+      "SELECT DATE_FORMAT(dibuat, '%H:%i:%s') AS waktu FROM tb_jurnal WHERE id = ? LIMIT 1",
+      [idJurnal]
+    );
+    const waktu = String((jrows[0] as unknown as { waktu: string | null } | undefined)?.waktu ?? "");
+    return ok({
+      id_jurnal: idJurnal,
+      kode,
+      nama: info.nama,
+      jumlah,
+      sisa: akhir ? Math.round(akhir.saldo * 100) / 100 : 0,
+      tanggal,
+      bukti,
+      waktu,
+    });
   } catch (e) {
     await conn.rollback();
-    return fail((e as Error).message, 500);
+    return tangkap("Gagal simpan penarikan", e);
   } finally {
     conn.release();
   }
 }
+

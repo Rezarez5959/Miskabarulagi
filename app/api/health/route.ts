@@ -1,4 +1,4 @@
-import pool, { ok, fail } from "@/lib/db";
+import pool, { gagal, ok } from "@/lib/db";
 
 // GET /api/health — cek koneksi DB + keberadaan tabel + jumlah seed.
 // Dipakai untuk memastikan "sudah terhubung atau belum" tanpa tebak-tebakan.
@@ -22,6 +22,7 @@ export async function GET() {
     }
     return ok({ db: true, version, tabel: names.length, hilang, user, merchant });
   } catch (e) {
-    return fail("DB tidak terhubung: " + (e as Error).message, 500);
+    return gagal("DB tidak terhubung: ", e);
   }
 }
+

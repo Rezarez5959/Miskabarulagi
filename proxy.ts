@@ -20,6 +20,7 @@ const PROTECTED = [
   "/merchant",
   "/bayar",
   "/riwayat",
+  "/ubah-password",
 ];
 
 export function proxy(req: NextRequest) {

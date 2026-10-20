@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { fail } from "@/lib/db";
+import { gagal, fail } from "@/lib/db";
 import { getSessionUser, requireRole } from "@/lib/auth";
 import {
   ambilBBBulanan,
@@ -215,12 +215,18 @@ export async function GET(req: NextRequest) {
       sub = `${d.pembantu.status} — saldo awal ${Number(d.pembantu.saldo_awal).toLocaleString("id-ID")}, ${d.rows.length} baris`;
       suffix = kode;
     } else if (laporan === "daftar-saldo") {
+      // Nasabah: hanya baris milik sendiri (sama seperti /api/daftar-saldo).
       const user = await getSessionUser(req);
       if (!user) return fail("Belum login", 401);
+      if (user.role === "nasabah" && !user.kode_bantu)
+        return fail("Akun belum ditautkan ke rekening, hubungi teller", 403);
       const tipe = (sp.get("tipe") ?? "TABUNGAN").toUpperCase();
       if (tipe !== "TABUNGAN" && tipe !== "PIUTANG") return fail("tipe harus TABUNGAN atau PIUTANG");
       const d = await ambilDaftarSaldo(tipe);
-      rows = d.rows;
+      rows =
+        user.role === "nasabah"
+          ? d.rows.filter((r) => String(r.kode).toUpperCase() === String(user.kode_bantu ?? "").toUpperCase())
+          : d.rows;
       judul = `Daftar Saldo ${tipe}`;
       sub = `${d.rows.length} rekening — TOTAL ${d.total.toLocaleString("id-ID")}`;
       total = ["", "", `TOTAL (${d.rows.length} rekening)`, d.total];
@@ -261,6 +267,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
-    return fail("Gagal ekspor: " + (e as Error).message, 500);
+    return gagal("Gagal ekspor: ", e);
   }
 }
+

@@ -122,10 +122,12 @@ async function mutasiPembantu(kode: string, mulai: string, sampai: string, kolom
   }
   const [rows] = await pool.execute<RowDataPacket[]>(
     kolomTipe
-      ? `SELECT j.tanggal AS tanggal, j.no_bukti, j.keterangan, j.tipe, d.kode_akun, d.debet, d.kredit
+      ? `SELECT j.tanggal AS tanggal, DATE_FORMAT(j.dibuat, '%H:%i:%s') AS waktu,
+           j.no_bukti, j.keterangan, j.tipe, d.kode_akun, d.debet, d.kredit
          FROM tb_jurnal_detail d JOIN tb_jurnal j ON j.id = d.id_jurnal
          WHERE ${where.join(" AND ")} ORDER BY j.tanggal ASC, j.id ASC LIMIT 1000`
-      : `SELECT j.tanggal AS tanggal, j.no_bukti, j.keterangan, d.kode_akun, d.debet, d.kredit
+      : `SELECT j.tanggal AS tanggal, DATE_FORMAT(j.dibuat, '%H:%i:%s') AS waktu,
+           j.no_bukti, j.keterangan, d.kode_akun, d.debet, d.kredit
          FROM tb_jurnal_detail d JOIN tb_jurnal j ON j.id = d.id_jurnal
          WHERE ${where.join(" AND ")} ORDER BY j.tanggal ASC, j.id ASC LIMIT 1000`,
     params
@@ -175,16 +177,21 @@ export async function ambilDaftarSaldo(tipe: "TABUNGAN" | "PIUTANG") {
 export async function ambilJurnalPeriode(bulan: string) {
   const { mulai, sampai } = batasBulan(bulan);
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT j.tanggal AS tanggal, j.no_bukti, j.keterangan, j.tipe,
+    `SELECT j.id AS id_jurnal, j.tanggal AS tanggal, DATE_FORMAT(j.dibuat, '%H:%i:%s') AS waktu,
+        j.no_bukti, j.keterangan, j.tipe,
        d.kode_akun, c.nama AS nama_akun, d.kode_bantu, d.debet, d.kredit
       FROM tb_jurnal_detail d
       JOIN tb_jurnal j ON j.id = d.id_jurnal
       JOIN tb_coa c ON c.kode_akun = d.kode_akun
       WHERE j.tanggal >= ? AND j.tanggal <= ?
-      ORDER BY j.tanggal ASC, j.id ASC, d.id ASC LIMIT 5000`,
+      ORDER BY j.tanggal DESC, j.id DESC, d.id DESC LIMIT 5000`,
     [mulai, sampai]
   );
-  const list: RowObj[] = (rows as unknown as RowObj[]).map((r) => ({ ...r, tanggal: tgl(r.tanggal) }));
+  const list: RowObj[] = (rows as unknown as RowObj[]).map((r) => ({
+    ...r,
+    tanggal: tgl(r.tanggal),
+    waktu: r.waktu === null || r.waktu === undefined ? "" : String(r.waktu),
+  }));
   const round2 = (n: number) => Math.round(n * 100) / 100;
   const totDb = round2(list.reduce((a, r) => a + Number(r.debet), 0));
   const totKr = round2(list.reduce((a, r) => a + Number(r.kredit), 0));
